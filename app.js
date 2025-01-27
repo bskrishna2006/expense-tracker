@@ -159,7 +159,6 @@
 // });
 // /*const uri = "mongodb+srv://Krishna:<db_password>@cluster0.qggkdhj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";*/
 
-
 const express = require('express');
 const mongoose = require('mongoose');
 
@@ -168,8 +167,8 @@ const port = 3006;
 
 app.use(express.json());
 
-const mongoUrl = "mongodb://127.0.0.1:27017/Project";
-mongoose.connect(mongoUrl)
+const mongoUrl = "mongodb+srv://krishnabs2023csbs:abcd1234@cluster0.mtccg.mongodb.net/Expense-tracker";
+mongoose.connect(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => {
         console.log("Database connected successfully");
         app.listen(port, () => {
@@ -177,54 +176,54 @@ mongoose.connect(mongoUrl)
         });
     })
     .catch(err => {
-        console.log("Database connection error:", err);
+        console.error("Database connection error:", err);
     });
-
 const studentSchema = new mongoose.Schema({
     id: { type: Number, required: true, unique: true },
     name: { type: String, required: true },
     address: { type: String, default: "Not Provided" },
     job: { type: String, required: true }
-});
+}, { collection: 'students' });
 
-const expenseModel = mongoose.model("expense-tracker", studentSchema);
+const Student = mongoose.model("Student", studentSchema);
 
 app.get("/app/student", async (req, res) => {
     try {
-        const expenses = await expenseModel.find();
-        res.status(200).json(expenses);
+        const students = await Student.find();
+        res.status(200).json(students);
     } catch (e) {
-        res.status(500).json({ message: "Failed to fetch expenses" });
+        console.error("Error fetching students:", e);
+        res.status(500).json({ message: "Failed to fetch students" });
     }
 });
-
 app.get("/app/student/:id", async (req, res) => {
     try {
         const { id } = req.params;
-        const details = await expenseModel.findOne({ id });
-        if (details) {
-            res.status(200).json(details);
+        const student = await Student.findOne({ id });
+        if (student) {
+            res.status(200).json(student);
         } else {
             res.status(404).json({ message: "Student not found" });
         }
     } catch (e) {
-        res.status(500).json({ message: "Error in fetching student details", error: e.message });
+        console.error("Error fetching student by ID:", e);
+        res.status(500).json({ message: "Error in fetching student details" });
     }
 });
-
 app.post("/app/student", async (req, res) => {
     try {
         const { name, address, job } = req.body;
         if (!name || !job) {
             return res.status(400).json({ message: "Name and job are required fields" });
         }
-        const lastStudent = await expenseModel.findOne().sort({ id: -1 }).exec();
+        const lastStudent = await Student.findOne().sort({ id: -1 }).exec();
         const newId = lastStudent ? lastStudent.id + 1 : 1;
-        const newStudent = new expenseModel({ id: newId, name, address, job });
-        const saved = await newStudent.save();
-        res.status(200).json(saved);
+        const newStudent = new Student({ id: newId, name, address, job });
+        const savedStudent = await newStudent.save();
+        res.status(201).json(savedStudent);
     } catch (error) {
-        res.status(500).json({ message: "Failed to save student details", error });
+        console.error("Error saving student:", error);
+        res.status(500).json({ message: "Failed to save student details" });
     }
 });
 
@@ -232,16 +231,17 @@ app.put("/app/student/:id", async (req, res) => {
     const { id } = req.params;
     const { name, address, job } = req.body;
     try {
-        const updateExpense = await expenseModel.findOneAndUpdate(
+        const updatedStudent = await Student.findOneAndUpdate(
             { id },
             { name, address, job },
             { new: true }
         );
-        if (!updateExpense) {
+        if (!updatedStudent) {
             return res.status(404).json({ message: "Student not found" });
         }
-        res.status(200).json(updateExpense);
+        res.status(200).json(updatedStudent);
     } catch (e) {
-        res.status(500).json({ message: "Error in updating student details", error: e.message });
+        console.error("Error updating student:", e);
+        res.status(500).json({ message: "Failed to update student details" });
     }
 });
